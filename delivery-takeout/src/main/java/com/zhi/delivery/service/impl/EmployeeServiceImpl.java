@@ -7,17 +7,23 @@ import com.zhi.delivery.entity.Employee;
 import com.zhi.delivery.mapper.EmployeeMapper;
 import com.zhi.delivery.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.nio.charset.StandardCharsets;
 
 @Service
 public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> implements EmployeeService {
 
-
+    @Autowired
+    RedisTemplate redisTemplate;
+    @Autowired
+    EmployeeService employeeService;
 
     @Override
     public Result<Employee> login(HttpServletRequest request, Employee employee) {
@@ -46,8 +52,9 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
             return Result.error("员工被禁用");
         }
         //第一用写法就是加载进session中的操作
-        request.getSession().setAttribute("employee",one);
+        request.getSession().setAttribute("employee",one.getId());
         return Result.success(one);
         //第二中写法就是加载到redis数据库中
     }
+
 }

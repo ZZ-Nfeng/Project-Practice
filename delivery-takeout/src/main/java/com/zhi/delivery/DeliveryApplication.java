@@ -10,6 +10,7 @@ import org.springframework.data.redis.core.RedisAccessor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 import javax.annotation.Resource;
 
@@ -24,14 +25,11 @@ import javax.annotation.Resource;
 @ServletComponentScan
 @EnableTransactionManagement  // 开启事务，DishServiceImpl的saveWithFlavor方法
 @EnableCaching    // 开启SpringCache注解方式的缓存功能
-
+@EnableSwagger2
 public class DeliveryApplication {
 
-    @Resource
-     static StringRedisTemplate redisTemplate;
-
     public static void main(String[] args) {
-        redisTemplate.opsForValue().set("key","1");
+
         SpringApplication.run(DeliveryApplication.class,args);
         log.info("项目启动成功！");
 
