@@ -1,6 +1,10 @@
 server:
   port: 8080
 spring:
+  servlet:
+    multipart:
+      max-request-size: 50MB
+      max-file-size: 50MB
   application:
     name: delivery-takeout
   datasource:
@@ -34,4 +38,4 @@ mybatis-plus:
     db-config:
       id-type: ASSIGN_ID
 upload:
-  filePath: E:\maven_project\mydelivery\project_images\img
+  filePath: E:\space\Project-Practice\img\
