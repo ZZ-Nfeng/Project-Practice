@@ -130,11 +130,24 @@ public class DishController {
         Long categoryId = dish.getCategoryId();
         LambdaQueryWrapper<Dish> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Dish::getCategoryId,categoryId);
-        Dish one = dishService.getOne(queryWrapper);
+        List<Dish> dishList = dishService.list(queryWrapper);
 
-        List<DishFlavor> dishFlavorList = dishFlavorService.list(new LambdaUpdateWrapper<DishFlavor>().eq(DishFlavor::getDishId, one.getId()));
+        List<DishDto> dishDtoList = dishList.stream().map(dish1 -> {
+            List<DishFlavor> dishFlavorList = dishFlavorService
+                    .list(new LambdaUpdateWrapper<DishFlavor>()
+                            .eq(DishFlavor::getDishId, dish1.getId()));
 
-        return null;
+            DishDto dishDto = new DishDto();
+            BeanUtils.copyProperties(dish1, dishDto);
+
+            dishDto.setFlavors(dishFlavorList);
+            Category category = categoryService.getOne(new LambdaUpdateWrapper<Category>().eq(Category::getId, categoryId));
+            dishDto.setCategoryName(category.getName());
+            return dishDto;
+        }).collect(Collectors.toList());
+
+
+        return Result.success(dishDtoList);
 
     }
 
