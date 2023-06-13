@@ -19,6 +19,10 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -69,30 +73,49 @@ public class OrderController {
             throw new MyCustomException("您的地址信息有误，暂不能下单!");
         }
 
-
         long orderId = IdWorker.getId();  // 订单号
 
         //  购物车中 商品 的总金额 需要保证在多线程的情况下 也是能计算正确的，故需要使用原子类
         AtomicInteger amount = new AtomicInteger(0);
 
-        List<OrderDetail> orderDetails = cartList.stream().map((item) -> {
-            OrderDetail orderDetail = new OrderDetail();
+        ExecutorService executor = Executors.newCachedThreadPool();
+        FutureTask<AtomicInteger> future = new FutureTask<>(new Callable<AtomicInteger>() {
+            @Override
+            public AtomicInteger call() throws Exception {
+                // 异步任务代码
+                List<OrderDetail> orderDetails = cartList.stream().map((item) -> {
+                    OrderDetail orderDetail = new OrderDetail();
 
-            orderDetail.setOrderId(orderId);
-            orderDetail.setName(item.getName());
-            orderDetail.setImage(item.getImage());
+                    orderDetail.setOrderId(orderId);
+                    orderDetail.setName(item.getName());
+                    orderDetail.setImage(item.getImage());
 
-            orderDetail.setDishId(item.getDishId());
-            orderDetail.setSetmealId(item.getSetmealId());
-            orderDetail.setDishFlavor(item.getDishFlavor());
-            orderDetail.setNumber(item.getNumber());
-            orderDetail.setAmount(item.getAmount());
+                    orderDetail.setDishId(item.getDishId());
+                    orderDetail.setSetmealId(item.getSetmealId());
+                    orderDetail.setDishFlavor(item.getDishFlavor());
+                    orderDetail.setNumber(item.getNumber());
+                    orderDetail.setAmount(item.getAmount());
 
-            amount.addAndGet(item.getAmount().multiply(new BigDecimal(item.getNumber())).intValue());
+                    amount.addAndGet(item.getAmount().multiply(new BigDecimal(item.getNumber())).intValue());
 
-            return orderDetail;
+                    return orderDetail;
 
-        }).collect(Collectors.toList());
+                }).collect(Collectors.toList());
+                // 向订单明细表插入数据，多条数据
+                orderDetailService.saveBatch(orderDetails);
+                return amount;
+            }
+        });
+        executor.execute(future);
+        FutureTask<String> future1 = new FutureTask<>(new Callable<String>() {
+            @Override
+            public String call() throws Exception {
+                // 清空购物车数据
+                shoppingCartService.remove(queryWrapper);
+                return null;
+            }
+        });
+        executor.execute(future1);
 
         orders.setId(orderId);
         orders.setOrderTime(LocalDateTime.now());
@@ -112,14 +135,6 @@ public class OrderController {
 
         // 向订单表插入数据,一条数据，插入数据之前，需要填充如上属性
         ordersService.save(orders);    //  --> ordersService.save(orders);
-
-        // 向订单明细表插入数据，多条数据
-        orderDetailService.saveBatch(orderDetails);
-
-        // 清空购物车数据
-        shoppingCartService.remove(queryWrapper);
-
-
 
         return Result.success("已成功下单!");
     }
@@ -144,20 +159,17 @@ public class OrderController {
     @GetMapping("/userPage")
     public Result<Page> page(int page, int pageSize){
         //分页构造器对象
-        Page<Orders> pageInfo = new Page<>(page,pageSize);
-        Page<OrdersDto> pageDto = new Page<>(page,pageSize);
+        Page<Orders> ordersPage = new Page<>(page,pageSize);
+        Page<OrdersDto> ordersDtoPage = new Page<>(page,pageSize);
         //构造条件查询对象
         LambdaQueryWrapper<Orders> queryWrapper = new LambdaQueryWrapper<>();
         //这里树直接把分页的全部结果查询出来，没有分页条件
         //添加排序条件，根据更新时间降序排列
         queryWrapper.orderByDesc(Orders::getOrderTime);
-        this.ordersService.page(pageInfo,queryWrapper);
-
-        //通过OrderId查询对应的OrderDetail
-        LambdaQueryWrapper<OrderDetail> queryWrapper2 = new LambdaQueryWrapper<>();
+        this.ordersService.page(ordersPage,queryWrapper);
 
         //对OrderDto进行需要的属性赋值
-        List<Orders> records = pageInfo.getRecords();
+        List<Orders> records = ordersPage.getRecords();
         List<OrdersDto> orderDtoList = records.stream().map((item) ->{
             OrdersDto orderDto = new OrdersDto();
             //此时的orderDto对象里面orderDetails属性还是空 下面准备为它赋值
@@ -169,10 +181,8 @@ public class OrderController {
             return orderDto;
         }).collect(Collectors.toList());
 
-        //使用dto的分页有点难度.....需要重点掌握
-        BeanUtils.copyProperties(pageInfo,pageDto,"records");
-        pageDto.setRecords(orderDtoList);
-        return Result.success(pageDto);
+        ordersDtoPage.setRecords(orderDtoList);
+        return Result.success(ordersDtoPage);
     }
 
     public List<OrderDetail> getOrderDetailsByOrderId(Long orderId){
