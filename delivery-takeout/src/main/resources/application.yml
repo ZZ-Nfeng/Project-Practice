@@ -17,7 +17,7 @@ spring:
   mail:
     host: smtp.163.com  # 发送邮件的服务器地址
     username: 17623001270@163.com # 登录163邮箱的账号
-    password: KSXMQBDDFESXZYNE  # 开启 IMAP/SMTP服务 获得的授权码,而不是163邮箱的登录密码
+    password: FTENKJJQCHYLZYLF  # 开启 IMAP/SMTP服务 获得的授权码,而不是163邮箱的登录密码
     default-encoding: UTF-8
 
   redis:
