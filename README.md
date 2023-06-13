@@ -13,12 +13,12 @@ Redis6.0+、
 #### 3、主要的请求路径：
 
 后端请求:
-后端登录页:  http://localhost:8282/backend/page/login/login.html
-后端主要展示页/主页: http://localhost:8282/backend/index.html
+后端登录页:  http://localhost:8080/backend/page/login/login.html
+后端主要展示页/主页: http://localhost:8080/backend/index.html
 消费端请求:
-消费端登录页: http://localhost:8282/front/page/login.html
-消费端主页: http://localhost:8282/front/index.html
-Swagger接口文档的请求: localhost:8282/doc.html#/home
+消费端登录页: http://localhost:8080/front/page/login.html
+消费端主页: http://localhost:8080/front/index.html
+
 
 #### 4、项目说明：
 在原本项目的基础上，我自行实现了如下功能：
